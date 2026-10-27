@@ -1,0 +1,6 @@
+{
+  "name": "Super Markdown",
+  "description": "高级Markdown阅读器与实时编辑器，支持书架文集管理、智能目录、双向链接、Mermaid图表、PDF导入及出厂预装文集",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

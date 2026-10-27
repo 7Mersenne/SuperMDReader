@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Super Markdown View</title>
+  <link rel="stylesheet" href="katex.min.css">
+  <script src="marked.min.js"></script>
+  <script src="mermaid.min.js"></script>
+  <script src="katex.min.js"></script>
+  <style id="base-theme">
+    :root {
+      --bg-color: #FFFFFF;
+      --text-color: #1F2937;
+      --heading-color: #111827;
+      --link-color: #2563EB;
+      --code-bg: #F3F4F6;
+      --code-color: #D97706;
+      --border-color: #E5E7EB;
+      --blockquote-border: #3B82F6;
+      --blockquote-bg: #F0F9FF;
+      --table-header-bg: #F8FAFC;
+      --base-font-size: 16px;
+      --line-height: 1.7;
+    }
+    
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    body {
+      margin: 0;
+      padding: 16px 20px 48px 20px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      font-size: var(--base-font-size);
+      line-height: var(--line-height);
+      color: var(--text-color);
+      background-color: var(--bg-color);
+      word-wrap: break-word;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+      color: var(--heading-color);
+      font-weight: 700;
+      margin-top: 1.4em;
+      margin-bottom: 0.6em;
+      line-height: 1.3;
+      scroll-margin-top: 16px;
+    }
+    
+    h1 { font-size: 1.75em; border-bottom: 2px solid var(--border-color); padding-bottom: 0.3em; }
+    h2 { font-size: 1.45em; border-bottom: 1px solid var(--border-color); padding-bottom: 0.25em; }
+    h3 { font-size: 1.25em; }
+    h4 { font-size: 1.1em; }
+    
+    p {
+      margin-top: 0;
+      margin-bottom: 1em;
+    }
+    
+    a {
+      color: var(--link-color);
+      text-decoration: underline;
+      cursor: pointer;
+    }
+    
+    .wikilink {
+      color: #7C3AED;
+      background-color: rgba(124, 58, 237, 0.08);
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-decoration: none;
+      font-weight: 500;
+      border: 1px solid rgba(124, 58, 237, 0.2);
+      display: inline-block;
+      margin: 0 1px;
+    }
+    .wikilink:hover, .wikilink:active {
+      background-color: rgba(124, 58, 237, 0.18);
+    }
+    
+    code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+      font-size: 0.88em;
+      background-color: var(--code-bg);
+      color: var(--code-color);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    
+    pre {
+      background-color: var(--code-bg);
+      padding: 14px;
+      border-radius: 8px;
+      overflow-x: auto;
+      border: 1px solid var(--border-color);
+    }
+    pre code {
+      padding: 0;
+      background-color: transparent;
+      color: inherit;
+    }
+    
+    blockquote {
+      margin: 1.2em 0;
+      padding: 10px 16px;
+      border-left: 4px solid var(--blockquote-border);
+      background-color: var(--blockquote-bg);
+      border-radius: 0 8px 8px 0;
+      color: #4B5563;
+    }
+    blockquote p:last-child {
+      margin-bottom: 0;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.2em 0;
+      overflow-x: auto;
+      display: block;
+    }
+    th, td {
+      border: 1px solid var(--border-color);
+      padding: 8px 12px;
+      text-align: left;
+    }
+    th {
+      background-color: var(--table-header-bg);
+      font-weight: 600;
+    }
+    tr:nth-child(even) {
+      background-color: rgba(0, 0, 0, 0.015);
+    }
+    
+    img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+    }
+    
+    hr {
+      border: 0;
+      height: 1px;
+      background: var(--border-color);
+      margin: 2em 0;
+    }
+    
+    ul, ol {
+      padding-left: 24px;
+      margin-bottom: 1em;
+    }
+    li {
+      margin-bottom: 0.35em;
+    }
+    
+    .mermaid {
+      text-align: center;
+      margin: 1.5em 0;
+      overflow-x: auto;
+      padding: 12px;
+      border-radius: 8px;
+      background: rgba(0,0,0,0.02);
+    }
+    
+    .katex-display {
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 8px 0;
+    }
+  </style>
+  <style id="custom-user-theme"></style>
+</head>
+<body>
+  <div id="content"></div>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'default',
+      securityLevel: 'loose'
+    });
+
+    // Custom renderer for marked
+    const renderer = new marked.Renderer();
+    
+    // Custom heading with id for TOC jump
+    let headingCounter = 0;
+    renderer.heading = function(text, level) {
+      headingCounter++;
+      const id = 'heading-' + headingCounter;
+      return `<h${level} id="${id}">${text}</h${level}>`;
+    };
+
+    // Override link to intercept local md files or external
+    renderer.link = function(href, title, text) {
+      if (href && (href.endsWith('.md') || href.includes('.md#') || !href.startsWith('http'))) {
+        return `<a href="javascript:void(0)" onclick="notifyLinkClick('${encodeURIComponent(href)}')">${text}</a>`;
+      }
+      return `<a href="${href}" target="_blank" rel="noopener">${text}</a>`;
+    };
+
+    marked.setOptions({
+      renderer: renderer,
+      gfm: true,
+      breaks: true
+    });
+
+    function notifyLinkClick(target) {
+      if (window.AndroidBridge && window.AndroidBridge.onLinkClick) {
+        window.AndroidBridge.onLinkClick(decodeURIComponent(target));
+      }
+    }
+
+    function notifyWikiLink(target) {
+      if (window.AndroidBridge && window.AndroidBridge.onWikiLinkClick) {
+        window.AndroidBridge.onWikiLinkClick(decodeURIComponent(target));
+      }
+    }
+
+    function processMath(text) {
+      // Inline math $...$
+      text = text.replace(/\$([^\$\n]+)\$/g, function(match, math) {
+        try {
+          return katex.renderToString(math, { displayMode: false, throwOnError: false });
+        } catch (e) {
+          return match;
+        }
+      });
+      // Display math $$...$$
+      text = text.replace(/\$\$([\s\S]+?)\$\$/g, function(match, math) {
+        try {
+          return katex.renderToString(math, { displayMode: true, throwOnError: false });
+        } catch (e) {
+          return match;
+        }
+      });
+      return text;
+    }
+
+    function processWikiLinks(text) {
+      // [[Page]] or [[Page|Alias]]
+      return text.replace(/\[\[([^\]\|]+)(?:\|([^\]]+))?\]\]/g, function(match, page, alias) {
+        const title = alias || page;
+        const target = encodeURIComponent(page.trim());
+        return `<a class="wikilink" href="javascript:void(0)" onclick="notifyWikiLink('${target}')">${title}</a>`;
+      });
+    }
+
+    function extractHeadings() {
+      const headings = [];
+      const nodes = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
+      nodes.forEach((node, index) => {
+        headings.push({
+          id: node.id,
+          level: parseInt(node.tagName.substring(1)),
+          title: node.innerText.trim()
+        });
+      });
+      if (window.AndroidBridge && window.AndroidBridge.onHeadingsFound) {
+        window.AndroidBridge.onHeadingsFound(JSON.stringify(headings));
+      }
+    }
+
+    async function setMarkdown(markdownText, customCss, fontSizeSp, isDark) {
+      headingCounter = 0;
+      
+      // Update theme CSS
+      const customStyleEl = document.getElementById('custom-user-theme');
+      if (customStyleEl) {
+        customStyleEl.innerHTML = customCss || '';
+      }
+      
+      // Update root font size
+      if (fontSizeSp) {
+        document.documentElement.style.setProperty('--base-font-size', fontSizeSp + 'px');
+      }
+
+      if (isDark) {
+        document.documentElement.style.setProperty('--bg-color', '#121212');
+        document.documentElement.style.setProperty('--text-color', '#E5E7EB');
+        document.documentElement.style.setProperty('--heading-color', '#F9FAFB');
+        document.documentElement.style.setProperty('--border-color', '#374151');
+        document.documentElement.style.setProperty('--code-bg', '#1F2937');
+        document.documentElement.style.setProperty('--code-color', '#F59E0B');
+        document.documentElement.style.setProperty('--blockquote-bg', '#1E293B');
+        document.documentElement.style.setProperty('--blockquote-border', '#60A5FA');
+        document.documentElement.style.setProperty('--table-header-bg', '#1F2937');
+        mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'loose' });
+      } else {
+        document.documentElement.style.setProperty('--bg-color', '#FFFFFF');
+        document.documentElement.style.setProperty('--text-color', '#1F2937');
+        document.documentElement.style.setProperty('--heading-color', '#111827');
+        document.documentElement.style.setProperty('--border-color', '#E5E7EB');
+        document.documentElement.style.setProperty('--code-bg', '#F3F4F6');
+        document.documentElement.style.setProperty('--code-color', '#D97706');
+        document.documentElement.style.setProperty('--blockquote-bg', '#F0F9FF');
+        document.documentElement.style.setProperty('--blockquote-border', '#3B82F6');
+        document.documentElement.style.setProperty('--table-header-bg', '#F8FAFC');
+        mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose' });
+      }
+
+      // Pre-process math and wikilinks
+      let processed = processWikiLinks(markdownText || '');
+      
+      // Separate mermaid code blocks before marked
+      const mermaidBlocks = [];
+      processed = processed.replace(/```mermaid\n([\s\S]*?)```/g, function(match, code) {
+        const placeholder = `%%MERMAID_PLACEHOLDER_${mermaidBlocks.length}%%`;
+        mermaidBlocks.push(code.trim());
+        return placeholder;
+      });
+
+      // Parse markdown with marked
+      let html = marked.parse(processed);
+
+      // Restore mermaid blocks as <div class="mermaid">
+      mermaidBlocks.forEach((code, i) => {
+        const placeholder = `%%MERMAID_PLACEHOLDER_${i}%%`;
+        html = html.replace(new RegExp(`<p>${placeholder}</p>|${placeholder}`, 'g'), `<div class="mermaid">${code}</div>`);
+      });
+
+      // Process Math
+      html = processMath(html);
+
+      const contentEl = document.getElementById('content');
+      contentEl.innerHTML = html;
+
+      // Render Mermaid diagrams
+      try {
+        const mermaids = document.querySelectorAll('.mermaid');
+        if (mermaids.length > 0) {
+          await mermaid.run({ nodes: mermaids });
+        }
+      } catch (err) {
+        console.error('Mermaid rendering error:', err);
+      }
+
+      // Notify Android of TOC headings
+      extractHeadings();
+    }
+
+    function scrollToHeading(id) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    // Inform Android that page is loaded
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.AndroidBridge && window.AndroidBridge.onPageLoaded) {
+        window.AndroidBridge.onPageLoaded();
+      }
+    });
+  </script>
+</body>
+</html>
